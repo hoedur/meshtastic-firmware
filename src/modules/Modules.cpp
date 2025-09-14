@@ -8,6 +8,7 @@
 #include "input/SerialKeyboardImpl.h"
 #include "input/TrackballInterruptImpl1.h"
 #include "input/UpDownInterruptImpl1.h"
+#include "input/i2cButton.h"
 #include "modules/SystemCommandsModule.h"
 #if !MESHTASTIC_EXCLUDE_I2C
 #include "input/cardKbI2cImpl.h"
@@ -187,6 +188,9 @@ void setupModules()
 #endif
             cardKbI2cImpl = new CardKbI2cImpl();
             cardKbI2cImpl->init();
+#if defined(M5STACK_UNITC6L)
+            i2cButton = new i2cButtonThread("i2cButtonThread");
+#endif
 #ifdef INPUTBROKER_MATRIX_TYPE
             kbMatrixImpl = new KbMatrixImpl();
             kbMatrixImpl->init();

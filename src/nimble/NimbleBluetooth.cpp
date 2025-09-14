@@ -79,6 +79,27 @@ static uint8_t lastToRadio[MAX_TO_FROM_RADIO_SIZE];
 
 class NimbleBluetoothToRadioCallback : public NimBLECharacteristicCallbacks
 {
+#if defined(M5STACK_UNITC6L)
+    virtual void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo)
+    {
+        LOG_INFO("NimbleBluetoothToRadioCallback onWrite\n");
+        auto val = pCharacteristic->getValue();
+
+        bluetoothPhoneAPI->handleToRadio(val.data(), val.length());
+    }
+
+    virtual void onNotify(NimBLECharacteristic *pCharacteristic) { LOG_INFO("NimbleBluetoothToRadioCallback onNotify\n"); }
+
+    virtual void onStatus(NimBLECharacteristic *pCharacteristic, int code)
+    {
+        LOG_INFO("NimbleBluetoothToRadioCallback onStatus\n");
+    }
+
+    virtual void onSubscribe(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo, uint16_t subValue)
+    {
+        LOG_INFO("NimbleBluetoothToRadioCallback onSubscribe\n");
+    }
+#else
     virtual void onWrite(NimBLECharacteristic *pCharacteristic)
     {
         auto val = pCharacteristic->getValue();
@@ -93,10 +114,40 @@ class NimbleBluetoothToRadioCallback : public NimBLECharacteristicCallbacks
             }
         }
     }
+#endif
 };
 
 class NimbleBluetoothFromRadioCallback : public NimBLECharacteristicCallbacks
 {
+#if defined(M5STACK_UNITC6L)
+    virtual void onRead(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo)
+    {
+        LOG_INFO("NimbleBluetoothFromRadioCallback onRead\n");
+        uint8_t fromRadioBytes[meshtastic_FromRadio_size];
+        size_t numBytes = bluetoothPhoneAPI->getFromRadio(fromRadioBytes);
+
+        std::string fromRadioByteString(fromRadioBytes, fromRadioBytes + numBytes);
+
+        pCharacteristic->setValue(fromRadioByteString);
+    }
+
+    virtual void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo)
+    {
+        LOG_INFO("NimbleBluetoothFromRadioCallback onWrite\n");
+    }
+
+    virtual void onNotify(NimBLECharacteristic *pCharacteristic) { LOG_INFO("NimbleBluetoothFromRadioCallback onNotify\n"); }
+
+    virtual void onStatus(NimBLECharacteristic *pCharacteristic, int code)
+    {
+        LOG_INFO("NimbleBluetoothFromRadioCallback onStatus\n");
+    }
+
+    virtual void onSubscribe(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo, uint16_t subValue)
+    {
+        LOG_INFO("NimbleBluetoothFromRadioCallback onSubscribe\n");
+    }
+#else
     virtual void onRead(NimBLECharacteristic *pCharacteristic)
     {
         int tries = 0;
@@ -117,12 +168,29 @@ class NimbleBluetoothFromRadioCallback : public NimBLECharacteristicCallbacks
         bluetoothPhoneAPI->hasChecked = false;
         bluetoothPhoneAPI->phoneWants = false;
     }
+#endif
 };
 
 class NimbleBluetoothServerCallback : public NimBLEServerCallbacks
 {
+#if defined(M5STACK_UNITC6L)
+    virtual void onConnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo)
+    {
+        LOG_INFO("NimbleBluetoothServerCallback onConnect address: %s\n", connInfo.getAddress().toString().c_str());
+        bleServer->updateConnParams(connInfo.getConnHandle(), 24, 48, 0, 18);
+    }
+
+    virtual void onMTUChange(uint16_t MTU, NimBLEConnInfo &connInfo)
+    {
+        LOG_INFO("NimbleBluetoothServerCallback MTU updated: %u for connection ID: %u\n", MTU, connInfo.getConnHandle());
+        bleServer->updateConnParams(connInfo.getConnHandle(), 24, 48, 0, 60);
+    }
+    virtual uint32_t onPassKeyDisplay()
+    {
+#else
     virtual uint32_t onPassKeyRequest()
     {
+#endif
         uint32_t passkey = config.bluetooth.fixed_pin;
 
         if (config.bluetooth.mode == meshtastic_Config_BluetoothConfig_PairingMode_RANDOM_PIN) {
@@ -137,6 +205,30 @@ class NimbleBluetoothServerCallback : public NimBLEServerCallbacks
 
 #if HAS_SCREEN // Todo: migrate this display code back into Screen class, and observe bluetoothStatus
         if (screen) {
+#if defined(M5STACK_UNITC6L)
+            screen->startAlert([passkey](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) -> void {
+                char btPIN[16] = "888888";
+                snprintf(btPIN, sizeof(btPIN), "%06u", passkey);
+                int x_offset = display->width() / 2;
+                int y_offset = display->height() <= 80 ? 0 : 12;
+                display->setTextAlignment(TEXT_ALIGN_CENTER);
+                display->setFont(FONT_MEDIUM);
+                display->drawString(x_offset + x, y_offset + y, "Bluetooth");
+                display->setFont(FONT_SMALL);
+                y_offset = display->height() == 64 ? y_offset + FONT_HEIGHT_MEDIUM - 4 : y_offset + FONT_HEIGHT_MEDIUM + 5;
+                display->drawString(x_offset + x, y_offset + y - 8, "Enter this code");
+                display->setFont(FONT_LARGE);
+                char pin[8];
+                snprintf(pin, sizeof(pin), "%.3s %.3s", btPIN, btPIN + 3);
+                y_offset = display->height() == 64 ? y_offset + FONT_HEIGHT_SMALL - 5 : y_offset + FONT_HEIGHT_SMALL + 5;
+                display->drawString(x_offset + x, y_offset + y - 13, pin);
+                display->setFont(FONT_SMALL);
+                char deviceName[64];
+                snprintf(deviceName, sizeof(deviceName), "Name: %s", owner.short_name);
+                y_offset = display->height() == 64 ? y_offset + FONT_HEIGHT_LARGE - 6 : y_offset + FONT_HEIGHT_LARGE + 5;
+                display->drawString(x_offset + x, y_offset + y - 20, deviceName);
+            });
+#else
             screen->startAlert([passkey](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) -> void {
                 char btPIN[16] = "888888";
                 snprintf(btPIN, sizeof(btPIN), "%06u", passkey);
@@ -162,14 +254,18 @@ class NimbleBluetoothServerCallback : public NimBLEServerCallbacks
                 y_offset = display->height() == 64 ? y_offset + FONT_HEIGHT_LARGE - 6 : y_offset + FONT_HEIGHT_LARGE + 5;
                 display->drawString(x_offset + x, y_offset + y, deviceName);
             });
+#endif
         }
 #endif
         passkeyShowing = true;
 
         return passkey;
     }
-
+#if defined(M5STACK_UNITC6L)
+    virtual void onAuthenticationComplete(NimBLEConnInfo &connInfo)
+#else
     virtual void onAuthenticationComplete(ble_gap_conn_desc *desc)
+#endif
     {
         LOG_INFO("BLE authentication complete");
 
@@ -249,7 +345,11 @@ int NimbleBluetooth::getRssi()
     if (bleServer && isConnected()) {
         auto service = bleServer->getServiceByUUID(MESH_SERVICE_UUID);
         uint16_t handle = service->getHandle();
+#if defined(M5STACK_UNITC6L)
+        return NimBLEDevice::getClientByHandle(handle)->getRssi();
+#else
         return NimBLEDevice::getClientByID(handle)->getRssi();
+#endif
     }
     return 0; // FIXME figure out where to source this
 }
@@ -274,6 +374,10 @@ void NimbleBluetooth::setup()
 
     NimbleBluetoothServerCallback *serverCallbacks = new NimbleBluetoothServerCallback();
     bleServer->setCallbacks(serverCallbacks, true);
+#if defined(M5STACK_UNITC6L)
+    bleServer->advertiseOnDisconnect(true);
+#else
+#endif
     setupService();
     startAdvertising();
 }
@@ -329,8 +433,26 @@ void NimbleBluetooth::startAdvertising()
 {
     NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
     pAdvertising->reset();
+#if defined(M5STACK_UNITC6L)
+    // Create a broadcast data object
+    NimBLEAdvertisementData advertisementData;
+    // Set advertising Flags
+    uint8_t flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
+    advertisementData.setFlags(flags); // Type 0x01
+    // Device name
+    advertisementData.setName(getDeviceName()); // Type 0x09
+    NimBLEAdvertisementData scanResponseData;
+    // Add a master service UUID (Type 0x07)
+    scanResponseData.addServiceUUID(NimBLEUUID(MESH_SERVICE_UUID)); // Type 0x07
+    // Add the battery service UUID to the scan response
+    scanResponseData.addServiceUUID(NimBLEUUID((uint16_t)0x1812)); // Type 0x03
+    // Apply broadcast and scan response data
+    pAdvertising->setAdvertisementData(advertisementData);
+    pAdvertising->setScanResponseData(scanResponseData);
+#else
     pAdvertising->addServiceUUID(MESH_SERVICE_UUID);
     pAdvertising->addServiceUUID(NimBLEUUID((uint16_t)0x180f)); // 0x180F is the Battery Service
+#endif
     pAdvertising->start(0);
 }
 

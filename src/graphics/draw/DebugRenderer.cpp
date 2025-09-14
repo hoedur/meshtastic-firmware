@@ -283,12 +283,13 @@ void drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t 
     std::string uptime = UIRenderer::drawTimeDelta(days, hours, minutes, seconds);
 
     // Line 1 (Still)
+#if !defined(M5STACK_UNITC6L)
     display->drawString(x + SCREEN_WIDTH - display->getStringWidth(uptime.c_str()), y, uptime.c_str());
     if (config.display.heading_bold)
         display->drawString(x - 1 + SCREEN_WIDTH - display->getStringWidth(uptime.c_str()), y, uptime.c_str());
 
     display->setColor(WHITE);
-
+#endif
     // Setup string to assemble analogClock string
     std::string analogClock = "";
 
@@ -392,31 +393,49 @@ void drawLoRaFocused(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x,
     char shortnameble[35];
     getMacAddr(dmac);
     snprintf(screen->ourId, sizeof(screen->ourId), "%02x%02x", dmac[4], dmac[5]);
+#if defined(M5STACK_UNITC6L)
+    snprintf(shortnameble, sizeof(shortnameble), "%s", screen->ourId);
+#else
     snprintf(shortnameble, sizeof(shortnameble), "BLE: %s", screen->ourId);
+#endif
     int textWidth = display->getStringWidth(shortnameble);
     int nameX = (SCREEN_WIDTH - textWidth);
     display->drawString(nameX, getTextPositions(display)[line++], shortnameble);
-
     // === Second Row: Radio Preset ===
     auto mode = DisplayFormatters::getModemPresetDisplayName(config.lora.modem_preset, false);
     char regionradiopreset[25];
     const char *region = myRegion ? myRegion->name : NULL;
     if (region != nullptr) {
+#if defined(M5STACK_UNITC6L)
+        snprintf(regionradiopreset, sizeof(regionradiopreset), "%s", region);
+#else
         snprintf(regionradiopreset, sizeof(regionradiopreset), "%s/%s", region, mode);
+#endif
     }
     textWidth = display->getStringWidth(regionradiopreset);
-    nameX = (SCREEN_WIDTH - textWidth) / 2;
+    nameX = (SCREEN_WIDTH - textWidth * 2);
+#if defined(M5STACK_UNITC6L)
+    display->drawString(1, getTextPositions(display)[line++] + 3, regionradiopreset);
+#else
     display->drawString(nameX, getTextPositions(display)[line++], regionradiopreset);
-
+#endif
     // === Third Row: Frequency / ChanNum ===
     char frequencyslot[35];
     char freqStr[16];
     float freq = RadioLibInterface::instance->getFreq();
     snprintf(freqStr, sizeof(freqStr), "%.3f", freq);
     if (config.lora.channel_num == 0) {
+#if defined(M5STACK_UNITC6L)
+        snprintf(frequencyslot, sizeof(frequencyslot), "%sMHz", freqStr);
+#else
         snprintf(frequencyslot, sizeof(frequencyslot), "Freq: %sMHz", freqStr);
+#endif
     } else {
+#if defined(M5STACK_UNITC6L)
+        snprintf(frequencyslot, sizeof(frequencyslot), "%sMHz (%d)", freqStr, config.lora.channel_num);
+#else
         snprintf(frequencyslot, sizeof(frequencyslot), "Freq/Ch: %sMHz (%d)", freqStr, config.lora.channel_num);
+#endif
     }
     size_t len = strlen(frequencyslot);
     if (len >= 4 && strcmp(frequencyslot + len - 4, " (0)") == 0) {
@@ -424,8 +443,13 @@ void drawLoRaFocused(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x,
     }
     textWidth = display->getStringWidth(frequencyslot);
     nameX = (SCREEN_WIDTH - textWidth) / 2;
+#if defined(M5STACK_UNITC6L)
+    display->drawString(nameX - 3, getTextPositions(display)[line++] + 7, frequencyslot);
+#else
     display->drawString(nameX, getTextPositions(display)[line++], frequencyslot);
-
+#endif
+#if defined(M5STACK_UNITC6L)
+#else
     // === Fourth Row: Channel Utilization ===
     const char *chUtil = "ChUtil:";
     char chUtilPercentage[10];
@@ -482,6 +506,7 @@ void drawLoRaFocused(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x,
 
     display->drawString(starting_position + chUtil_x + chutil_bar_width + extraoffset, getTextPositions(display)[4],
                         chUtilPercentage);
+#endif
 }
 
 // ****************************
@@ -507,8 +532,11 @@ void drawSystemScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x
 #ifdef USE_EINK
     barsOffset -= 12;
 #endif
+#if defined(M5STACK_UNITC6L)
+    const int barX = x + 45 + barsOffset;
+#else
     const int barX = x + 40 + barsOffset;
-
+#endif
     auto drawUsageRow = [&](const char *label, uint32_t used, uint32_t total, bool isHeap = false) {
         if (total == 0)
             return;
@@ -533,7 +561,7 @@ void drawSystemScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x
         // Label
         display->setTextAlignment(TEXT_ALIGN_LEFT);
         display->drawString(labelX, getTextPositions(display)[line], label);
-
+#if !defined(M5STACK_UNITC6L)
         // Bar
         int barY = getTextPositions(display)[line] + (FONT_HEIGHT_SMALL - barHeight) / 2;
         display->setColor(WHITE);
@@ -541,7 +569,7 @@ void drawSystemScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x
 
         display->fillRect(barX, barY, fillWidth, barHeight);
         display->setColor(WHITE);
-
+#endif
         // Value string
         display->setTextAlignment(TEXT_ALIGN_RIGHT);
         display->drawString(SCREEN_WIDTH - 2, getTextPositions(display)[line], combinedStr);
@@ -594,6 +622,9 @@ void drawSystemScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x
         line += 1;
     }
     line += 1;
+#if defined(M5STACK_UNITC6L)
+    display->drawString(x + 8, getTextPositions(display)[line] + 5, "hold to set");
+#else
     char appversionstr[35];
     snprintf(appversionstr, sizeof(appversionstr), "Ver: %s", optstr(APP_VERSION));
     char appversionstr_formatted[40];
@@ -630,6 +661,7 @@ void drawSystemScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x
         nameX = (SCREEN_WIDTH - textWidth) / 2;
         display->drawString(nameX, getTextPositions(display)[line], uptimeStr);
     }
+#endif
 }
 } // namespace DebugRenderer
 } // namespace graphics

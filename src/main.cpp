@@ -268,6 +268,12 @@ uint32_t timeLastPowered = 0;
 static Periodic *ledPeriodic;
 static OSThread *powerFSMthread;
 static OSThread *ambientLightingThread;
+#if defined(M5STACK_UNITC6L)
+extern void pi4io_init();
+extern void sx1262_reset();
+extern void sx1262_rf_on();
+#else
+#endif
 
 RadioInterface *rIf = NULL;
 #ifdef ARCH_PORTDUINO
@@ -560,7 +566,12 @@ void setup()
     pinMode(AQ_SET_PIN, OUTPUT);
     digitalWrite(AQ_SET_PIN, HIGH);
 #endif
-
+#if defined(M5STACK_UNITC6L)
+    pi4io_init();
+    sx1262_rf_on();
+    pinMode(LORA_CS, OUTPUT);
+    digitalWrite(LORA_CS, 1);
+#endif
     // Currently only the tbeam has a PMU
     // PMU initialization needs to be placed before i2c scanning
     power = new Power();
@@ -878,7 +889,8 @@ void setup()
     if (config.display.displaymode != meshtastic_Config_DisplayConfig_DisplayMode_COLOR) {
 
 #if defined(ST7701_CS) || defined(ST7735_CS) || defined(USE_EINK) || defined(ILI9341_DRIVER) || defined(ILI9342_DRIVER) ||       \
-    defined(ST7789_CS) || defined(HX8357_CS) || defined(USE_ST7789) || defined(ILI9488_CS) || defined(ST7796_CS)
+    defined(ST7789_CS) || defined(HX8357_CS) || defined(USE_ST7789) || defined(ILI9488_CS) || defined(ST7796_CS) ||              \
+    defined(USE_SPISSD1306)
         screen = new graphics::Screen(screen_found, screen_model, screen_geometry);
 #elif defined(ARCH_PORTDUINO)
         if ((screen_found.port != ScanI2C::I2CPort::NO_I2C || settingsMap[displayPanel]) &&
@@ -1141,7 +1153,8 @@ void setup()
 // Don't call screen setup until after nodedb is setup (because we need
 // the current region name)
 #if defined(ST7701_CS) || defined(ST7735_CS) || defined(USE_EINK) || defined(ILI9341_DRIVER) || defined(ILI9342_DRIVER) ||       \
-    defined(ST7789_CS) || defined(HX8357_CS) || defined(USE_ST7789) || defined(ILI9488_CS) || defined(ST7796_CS)
+    defined(ST7789_CS) || defined(HX8357_CS) || defined(USE_ST7789) || defined(ILI9488_CS) || defined(ST7796_CS) ||              \
+    defined(USE_SPISSD1306)
     if (screen)
         screen->setup();
 #elif defined(ARCH_PORTDUINO)
@@ -1259,7 +1272,10 @@ void setup()
         }
     }
 #endif
-
+#if defined(M5STACK_UNITC6L)
+    sx1262_reset();
+#else
+#endif
 #if defined(USE_SX1262) && !defined(ARCH_PORTDUINO) && !defined(TCXO_OPTIONAL) && RADIOLIB_EXCLUDE_SX126X != 1
     if ((!rIf) && (config.lora.region != meshtastic_Config_LoRaConfig_RegionCode_LORA_24)) {
         auto *sxIf = new SX1262Interface(RadioLibHAL, SX126X_CS, SX126X_DIO1, SX126X_RESET, SX126X_BUSY);
