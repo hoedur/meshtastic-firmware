@@ -501,7 +501,7 @@ void UIRenderer::drawDeviceFocused(OLEDDisplay *display, OLEDDisplayUiState *sta
 
     // === Header ===
 #if defined(M5STACK_UNITC6L)
-    graphics::drawCommonHeader(display, x, y, "STATUS");
+    graphics::drawCommonHeader(display, x, y, "Home");
 #else
     graphics::drawCommonHeader(display, x, y, "");
 #endif
@@ -568,8 +568,19 @@ void UIRenderer::drawDeviceFocused(OLEDDisplay *display, OLEDDisplayUiState *sta
 #endif
 
 #if defined(M5STACK_UNITC6L)
-    display->drawString(x + 8, getTextPositions(display)[line++], "");
-    display->drawString(x + 8, getTextPositions(display)[line++] + 7, "hold to set");
+    line += 1;
+
+    // === Node Identity ===
+    int textWidth = 0;
+    int nameX = 0;
+    char shortnameble[35];
+    snprintf(shortnameble, sizeof(shortnameble), "%s",
+             graphics::UIRenderer::haveGlyphs(owner.short_name) ? owner.short_name : "");
+
+    // === ShortName Centered ===
+    textWidth = display->getStringWidth(shortnameble);
+    nameX = (SCREEN_WIDTH - textWidth) / 2;
+    display->drawString(nameX, getTextPositions(display)[line++], shortnameble);
 #else
     if (powerStatus->getHasBattery()) {
         char batStr[20];
@@ -856,12 +867,9 @@ void UIRenderer::drawIconScreen(const char *upperMsg, OLEDDisplay *display, OLED
 
     // draw centered icon left to right and centered above the one line of app text
 #if defined(M5STACK_UNITC6L)
-    display->drawXbm(x - 12 + (SCREEN_WIDTH - 50) / 2, y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - 28) / 2 + 10, icon_width,
-                     icon_height, icon_bits);
+    display->drawXbm(x + (SCREEN_WIDTH - 50) / 2, y + (SCREEN_HEIGHT - 28) / 2, icon_width, icon_height, icon_bits);
     display->setFont(FONT_MEDIUM);
     display->setTextAlignment(TEXT_ALIGN_LEFT);
-    const char *title = " Next -- OK";
-    display->drawString(x + getStringCenteredX(title), y + SCREEN_HEIGHT + 4 - FONT_HEIGHT_MEDIUM, title);
     display->setFont(FONT_SMALL);
     // Draw region in upper left
     if (upperMsg) {
@@ -870,13 +878,12 @@ void UIRenderer::drawIconScreen(const char *upperMsg, OLEDDisplay *display, OLED
         int msgY = y;
         display->drawString(msgX, msgY, upperMsg);
     }
-    // Draw version and short name in upper right
+    // Draw version and short name in bottom middle
     char buf[25];
-    snprintf(buf, sizeof(buf), "%s\n%s", xstr(APP_VERSION_SHORT),
+    snprintf(buf, sizeof(buf), "%s   %s", xstr(APP_VERSION_SHORT),
              graphics::UIRenderer::haveGlyphs(owner.short_name) ? owner.short_name : "");
 
-    display->setTextAlignment(TEXT_ALIGN_RIGHT);
-    display->drawString(x + SCREEN_WIDTH, y + 10, buf);
+    display->drawString(x + getStringCenteredX(buf), y + SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM, buf);
     screen->forceDisplay();
 
     display->setTextAlignment(TEXT_ALIGN_LEFT); // Restore left align, just to be kind to any other unsuspecting code
@@ -1179,8 +1186,6 @@ void UIRenderer::drawNavigationBar(OLEDDisplay *display, OLEDDisplayUiState *sta
     const int bigOffset = isHighResolution ? 1 : 0;
 
     const size_t totalIcons = screen->indicatorIcons.size();
-    if (totalIcons == 0 || display->getHeight() < 64)
-        return;
 
     const size_t iconsPerPage = (SCREEN_WIDTH + spacing) / (iconSize + spacing);
     const size_t currentPage = currentFrame / iconsPerPage;

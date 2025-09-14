@@ -413,12 +413,9 @@ void drawLoRaFocused(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x,
 #endif
     }
     textWidth = display->getStringWidth(regionradiopreset);
-    nameX = (SCREEN_WIDTH - textWidth * 2);
-#if defined(M5STACK_UNITC6L)
-    display->drawString(1, getTextPositions(display)[line++] + 3, regionradiopreset);
-#else
+    nameX = (SCREEN_WIDTH - textWidth) / 2;
     display->drawString(nameX, getTextPositions(display)[line++], regionradiopreset);
-#endif
+
     // === Third Row: Frequency / ChanNum ===
     char frequencyslot[35];
     char freqStr[16];
@@ -443,11 +440,8 @@ void drawLoRaFocused(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x,
     }
     textWidth = display->getStringWidth(frequencyslot);
     nameX = (SCREEN_WIDTH - textWidth) / 2;
-#if defined(M5STACK_UNITC6L)
-    display->drawString(nameX - 3, getTextPositions(display)[line++] + 7, frequencyslot);
-#else
     display->drawString(nameX, getTextPositions(display)[line++], frequencyslot);
-#endif
+
 #if defined(M5STACK_UNITC6L)
 #else
     // === Fourth Row: Channel Utilization ===
@@ -622,13 +616,16 @@ void drawSystemScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x
         line += 1;
     }
     line += 1;
-#if defined(M5STACK_UNITC6L)
-    display->drawString(x + 8, getTextPositions(display)[line] + 5, "hold to set");
-#else
+
     char appversionstr[35];
     snprintf(appversionstr, sizeof(appversionstr), "Ver: %s", optstr(APP_VERSION));
     char appversionstr_formatted[40];
     char *lastDot = strrchr(appversionstr, '.');
+#if defined(M5STACK_UNITC6L)
+    if (lastDot != nullptr) {
+        *lastDot = '\0'; // truncate string
+    }
+#else
     if (lastDot) {
         size_t prefixLen = lastDot - appversionstr;
         strncpy(appversionstr_formatted, appversionstr, prefixLen);
@@ -639,10 +636,13 @@ void drawSystemScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x
         strncpy(appversionstr, appversionstr_formatted, sizeof(appversionstr) - 1);
         appversionstr[sizeof(appversionstr) - 1] = '\0';
     }
+#endif
     int textWidth = display->getStringWidth(appversionstr);
     int nameX = (SCREEN_WIDTH - textWidth) / 2;
-    display->drawString(nameX, getTextPositions(display)[line], appversionstr);
 
+    display->drawString(nameX, getTextPositions(display)[line], appversionstr);
+#if defined(M5STACK_UNITC6L)
+#else
     if (SCREEN_HEIGHT > 64 || (SCREEN_HEIGHT <= 64 && line < 4)) { // Only show uptime if the screen can show it
         line += 1;
         char uptimeStr[32] = "";

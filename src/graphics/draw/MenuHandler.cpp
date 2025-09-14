@@ -285,7 +285,11 @@ void menuHandler::TZPicker()
 
 void menuHandler::clockMenu()
 {
+#if defined(M5STACK_UNITC6L)
+    static const char *optionsArray[] = {"Back", "Time Format", "Timezone"};
+#else
     static const char *optionsArray[] = {"Back", "Clock Face", "Time Format", "Timezone"};
+#endif
     enum optionsNumbers { Back = 0, Clock = 1, Time = 2, Timezone = 3 };
     BannerOverlayOptions bannerOptions;
     bannerOptions.message = "Clock Action";
