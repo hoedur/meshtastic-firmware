@@ -21,8 +21,23 @@ i2cButtonThread *i2cButton;
 
 using namespace concurrency;
 
-extern void i2c_read_byte(uint8_t addr, uint8_t reg, uint8_t *value);
-extern void i2c_write_byte(uint8_t addr, uint8_t reg, uint8_t value);
+void i2c_read_byte(uint8_t addr, uint8_t reg, uint8_t *value)
+{
+    Wire.beginTransmission(addr);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(addr, 1);
+    *value = Wire.read();
+}
+
+void i2c_write_byte(uint8_t addr, uint8_t reg, uint8_t value)
+{
+    Wire.beginTransmission(addr);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+}
+
 #define PI4IO_M_ADDR 0x43
 #define getbit(x, y) ((x) >> (y)&0x01)
 #define PI4IO_REG_IRQ_STA 0x13

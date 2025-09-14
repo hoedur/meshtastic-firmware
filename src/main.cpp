@@ -268,12 +268,6 @@ uint32_t timeLastPowered = 0;
 static Periodic *ledPeriodic;
 static OSThread *powerFSMthread;
 static OSThread *ambientLightingThread;
-#if defined(M5STACK_UNITC6L)
-extern void pi4io_init();
-extern void sx1262_reset();
-extern void sx1262_rf_on();
-#else
-#endif
 
 RadioInterface *rIf = NULL;
 #ifdef ARCH_PORTDUINO
@@ -393,7 +387,10 @@ void setup()
     io.digitalWrite(EXPANDS_GPIO_EN, HIGH);
     io.pinMode(EXPANDS_SD_PULLEN, INPUT);
 #endif
-
+#if defined(M5STACK_UNITC6L)
+    pinMode(LORA_CS, OUTPUT);
+    digitalWrite(LORA_CS, 1);
+#endif
     concurrency::hasBeenSetup = true;
 #if ARCH_PORTDUINO
     SPISettings spiSettings(settingsMap[spiSpeed], MSBFIRST, SPI_MODE0);
@@ -565,12 +562,6 @@ void setup()
     // RAK-12039 set pin for Air quality sensor. Detectable on I2C after ~3 seconds, so we need to rescan later
     pinMode(AQ_SET_PIN, OUTPUT);
     digitalWrite(AQ_SET_PIN, HIGH);
-#endif
-#if defined(M5STACK_UNITC6L)
-    pi4io_init();
-    sx1262_rf_on();
-    pinMode(LORA_CS, OUTPUT);
-    digitalWrite(LORA_CS, 1);
 #endif
     // Currently only the tbeam has a PMU
     // PMU initialization needs to be placed before i2c scanning
@@ -1271,10 +1262,6 @@ void setup()
             radioType = RF95_RADIO;
         }
     }
-#endif
-#if defined(M5STACK_UNITC6L)
-    sx1262_reset();
-#else
 #endif
 #if defined(USE_SX1262) && !defined(ARCH_PORTDUINO) && !defined(TCXO_OPTIONAL) && RADIOLIB_EXCLUDE_SX126X != 1
     if ((!rIf) && (config.lora.region != meshtastic_Config_LoRaConfig_RegionCode_LORA_24)) {
