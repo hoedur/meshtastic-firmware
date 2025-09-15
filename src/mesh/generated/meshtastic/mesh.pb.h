@@ -260,7 +260,7 @@ typedef enum _meshtastic_HardwareModel {
     /* Lilygo TLora Pager */
     meshtastic_HardwareModel_T_LORA_PAGER = 103,
     /* GAT562 Mesh Trial Tracker */
-    meshtastic_HardwareModel_GAT562_MESH_TRIAL_TRACKER = 104,
+    meshtastic_HardwareModel_M5STACK_UNITC6L = 0x68,
     /* RAKwireless WisMesh Tag */
     meshtastic_HardwareModel_WISMESH_TAG = 105,
     /* RAKwireless WisBlock Core RAK3312 https://docs.rakwireless.com/product-categories/wisduo/rak3112-module/overview/ */
@@ -272,8 +272,6 @@ typedef enum _meshtastic_HardwareModel {
     meshtastic_HardwareModel_HELTEC_MESH_SOLAR = 108,
     /* Lilygo T-Echo Lite */
     meshtastic_HardwareModel_T_ECHO_LITE = 109,
-
-    meshtastic_HardwareModel_M5STACK_UNITC6L=110,
     /* ------------------------------------------------------------------------------------------------------------------------------------------
  Reserved ID For developing private Ports. These will show up in live traffic sparsely, so we can use a high number. Keep it within 8 bits.
  ------------------------------------------------------------------------------------------------------------------------------------------ */
