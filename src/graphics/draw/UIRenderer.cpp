@@ -231,11 +231,13 @@ void UIRenderer::drawNodeInfo(OLEDDisplay *display, const OLEDDisplayUiState *st
         return;
     uint32_t now = millis();
     display->clear();
+#if defined(M5STACK_UNITC6L)
     if (now - lastSwitchTime >= 10000) // 10000 ms = 10 秒
     {
         display->display();
         lastSwitchTime = now;
     }
+#endif
     currentFavoriteNodeNum = node->num;
     // === Create the shortName and title string ===
     const char *shortName = (node->has_user && haveGlyphs(node->user.short_name)) ? node->user.short_name : "Node";
@@ -253,15 +255,18 @@ void UIRenderer::drawNodeInfo(OLEDDisplay *display, const OLEDDisplayUiState *st
 
     // List of available macro Y positions in order, from top to bottom.
     int line = 1; // which slot to use next
-    // std::string usernameStr;
-    char usernameStr[32] = {0};
+    std::string usernameStr;
     // === 1. Long Name (always try to show first) ===
+#if defined(M5STACK_UNITC6L)
     const char *username = (node->has_user && node->user.long_name[0]) ? node->user.short_name : nullptr;
+#else
+    const char *username = (node->has_user && node->user.long_name[0]) ? node->user.long_name : nullptr;
+#endif
+
     if (username) {
-        // usernameStr = sanitizeString(username); // Sanitize the incoming long_name just in case
-        //  Print node's long name (e.g. "Backpack Node")
-        snprintf(usernameStr, sizeof(usernameStr), " name: %s", shortName);
-        display->drawString(x, getTextPositions(display)[line++], usernameStr);
+        usernameStr = sanitizeString(username); // Sanitize the incoming long_name just in case
+        // Print node's long name (e.g. "Backpack Node")
+        display->drawString(x, getTextPositions(display)[line++], usernameStr.c_str());
     }
 
     // === 2. Signal and Hops (combined on one line, if available) ===
@@ -281,19 +286,18 @@ void UIRenderer::drawNodeInfo(OLEDDisplay *display, const OLEDDisplayUiState *st
         haveSignal = true;
     }
     // If hops is valid (>0), show right after signal
-    // if (node->hops_away > 0) {
-    //     size_t len = strlen(signalHopsStr);
-    //     // Decide between "1 Hop" and "N Hops"
-    //     if (haveSignal) {
-    //         snprintf(signalHopsStr + len, sizeof(signalHopsStr) - len, " [%d %s]", node->hops_away,
-    //                  (node->hops_away == 1 ? "Hop" : "Hops"));
-    //     } else {
-    //         snprintf(signalHopsStr, sizeof(signalHopsStr), "[%d %s]", node->hops_away, (node->hops_away == 1 ? "Hop" :
-    //         "Hops"));
-    //     }
-    // }
+    if (node->hops_away > 0) {
+        size_t len = strlen(signalHopsStr);
+        // Decide between "1 Hop" and "N Hops"
+        if (haveSignal) {
+            snprintf(signalHopsStr + len, sizeof(signalHopsStr) - len, " [%d %s]", node->hops_away,
+                     (node->hops_away == 1 ? "Hop" : "Hops"));
+        } else {
+            snprintf(signalHopsStr, sizeof(signalHopsStr), "[%d %s]", node->hops_away, (node->hops_away == 1 ? "Hop" : "Hops"));
+        }
+    }
     if (signalHopsStr[0] && line < 5) {
-        display->drawString(x, getTextPositions(display)[line++] + 2, signalHopsStr);
+        display->drawString(x, getTextPositions(display)[line++], signalHopsStr);
     }
 
     // === 3. Heard (last seen, skip if node never seen) ===
@@ -302,7 +306,7 @@ void UIRenderer::drawNodeInfo(OLEDDisplay *display, const OLEDDisplayUiState *st
     if (seconds != 0 && seconds != UINT32_MAX) {
         uint32_t minutes = seconds / 60, hours = minutes / 60, days = hours / 24;
         // Format as "Heard: Xm ago", "Heard: Xh ago", or "Heard: Xd ago"
-        snprintf(seenStr, sizeof(seenStr), (days > 365 ? " Heard: ?" : " Heard:%d%c"),
+        snprintf(seenStr, sizeof(seenStr), (days > 365 ? " Heard: ?" : " Heard: %d%c ago"),
                  (days    ? days
                   : hours ? hours
                           : minutes),
@@ -311,10 +315,9 @@ void UIRenderer::drawNodeInfo(OLEDDisplay *display, const OLEDDisplayUiState *st
                           : 'm'));
     }
     if (seenStr[0] && line < 5) {
-        display->drawString(x, getTextPositions(display)[line++] + 4, seenStr);
+        display->drawString(x, getTextPositions(display)[line++], seenStr);
     }
-#if defined(M5STACK_UNITC6L)
-#else
+#if !defined(M5STACK_UNITC6L)
     // === 4. Uptime (only show if metric is present) ===
     char uptimeStr[32] = "";
     if (node->has_device_metrics && node->device_metrics.has_uptime_seconds) {
@@ -530,8 +533,7 @@ void UIRenderer::drawDeviceFocused(OLEDDisplay *display, OLEDDisplayUiState *sta
     uint32_t hours = (uptime % 86400) / 3600;
     uint32_t mins = (uptime % 3600) / 60;
     // Show as "Up: 2d 3h", "Up: 5h 14m", or "Up: 37m"
-#if defined(M5STACK_UNITC6L)
-#else
+#if !defined(M5STACK_UNITC6L)
     if (days)
         snprintf(uptimeStr, sizeof(uptimeStr), "Up: %ud %uh", days, hours);
     else if (hours)
@@ -986,8 +988,7 @@ void UIRenderer::drawCompassAndLocationScreen(OLEDDisplay *display, OLEDDisplayU
         UIRenderer::formatDateTime(datetimeStr, sizeof(datetimeStr), rtc_sec, display, showTime);
         char fullLine[40];
         snprintf(fullLine, sizeof(fullLine), " Date: %s", datetimeStr);
-#if defined(M5STACK_UNITC6L)
-#else
+#if !defined(M5STACK_UNITC6L)
         display->drawString(0, getTextPositions(display)[line++], fullLine);
 #endif
 
@@ -1020,8 +1021,7 @@ void UIRenderer::drawCompassAndLocationScreen(OLEDDisplay *display, OLEDDisplayU
         display->drawString(x, getTextPositions(display)[line++], DisplayLineTwo);
 #endif
     }
-#if defined(M5STACK_UNITC6L)
-#else
+#if !defined(M5STACK_UNITC6L)
     // === Draw Compass if heading is valid ===
     if (validHeading) {
         // --- Compass Rendering: landscape (wide) screens use original side-aligned logic ---
@@ -1186,6 +1186,8 @@ void UIRenderer::drawNavigationBar(OLEDDisplay *display, OLEDDisplayUiState *sta
     const int bigOffset = isHighResolution ? 1 : 0;
 
     const size_t totalIcons = screen->indicatorIcons.size();
+    if (totalIcons == 0)
+        return;
 
     const size_t iconsPerPage = (SCREEN_WIDTH + spacing) / (iconSize + spacing);
     const size_t currentPage = currentFrame / iconsPerPage;

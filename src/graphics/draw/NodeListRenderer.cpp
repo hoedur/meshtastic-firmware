@@ -403,6 +403,8 @@ void drawNodeListScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t
     int columnWidth = display->getWidth() / 2;
 #endif
     display->clear();
+
+    // Draw the battery/time header
     graphics::drawCommonHeader(display, x, y, title);
 
     // Space below header
@@ -452,8 +454,7 @@ void drawNodeListScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t
         }
     }
 
-#if defined(M5STACK_UNITC6L)
-#else
+#if !defined(M5STACK_UNITC6L)
     // Draw column separator
     if (shownCount > 0) {
         const int firstNodeY = y + 3;
@@ -484,7 +485,6 @@ void drawDynamicNodeListScreen(OLEDDisplay *display, OLEDDisplayUiState *state, 
         display->display();
         lastSwitchTime = now;
     }
-#else
 #endif
     // On very first call (on boot or state enter)
     if (lastRenderedMode == MODE_COUNT) {
@@ -547,7 +547,6 @@ void drawNodeListWithCompasses(OLEDDisplay *display, OLEDDisplayUiState *state, 
         display->display();
         lastSwitchTime = now;
     }
-#else
 #endif
     if (uiconfig.compass_mode != meshtastic_CompassMode_FREEZE_HEADING) {
 #if HAS_GPS

@@ -442,8 +442,7 @@ void drawLoRaFocused(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x,
     nameX = (SCREEN_WIDTH - textWidth) / 2;
     display->drawString(nameX, getTextPositions(display)[line++], frequencyslot);
 
-#if defined(M5STACK_UNITC6L)
-#else
+#if !defined(M5STACK_UNITC6L)
     // === Fourth Row: Channel Utilization ===
     const char *chUtil = "ChUtil:";
     char chUtilPercentage[10];
@@ -641,8 +640,7 @@ void drawSystemScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x
     int nameX = (SCREEN_WIDTH - textWidth) / 2;
 
     display->drawString(nameX, getTextPositions(display)[line], appversionstr);
-#if defined(M5STACK_UNITC6L)
-#else
+#if !defined(M5STACK_UNITC6L)
     if (SCREEN_HEIGHT > 64 || (SCREEN_HEIGHT <= 64 && line < 4)) { // Only show uptime if the screen can show it
         line += 1;
         char uptimeStr[32] = "";

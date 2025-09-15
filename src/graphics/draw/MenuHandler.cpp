@@ -572,6 +572,10 @@ void menuHandler::favoriteBaseMenu()
         optionsArray[options] = "New Freetext Msg";
         optionsEnumArray[options++] = Freetext;
     }
+#if !defined(M5STACK_UNITC6L)
+    optionsArray[options] = "Trace Route";
+    optionsEnumArray[options++] = TraceRoute;
+#endif
     optionsArray[options] = "Remove Favorite";
     optionsEnumArray[options++] = Remove;
 
